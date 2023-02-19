@@ -1,3 +1,9 @@
+// This file implements peterson's solution using pthread library.
+
+// author: Tomáš Vavro
+// email: xvavro@stuba.sk
+// license: MIT
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
