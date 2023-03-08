@@ -6,6 +6,7 @@ __license__ = "MIT"
 
 from fei.ppds import Thread, Mutex, Semaphore, Event, print
 from time import sleep
+from typing import Callable
 
 NUM_WAITING_THREADS: int = 3
 
@@ -15,62 +16,9 @@ class Shared1:
     def __init__(self):
         """Initialize an instance of Shared.
 
-        After initialization a semaphore and a lock is created.
-        Counter is set to 0.
+        After initialization a semaphore is created.
         """
         self.event: Semaphore = Semaphore(0)
-        self.counter: int = 0
-        self.lock: Mutex = Mutex()
-
-
-def wait1(i: int, shared: Shared1):
-    """Wait for event to happen.
-
-    Args:
-        i -- thread id
-        shared -- shared data
-    """
-    print(f"Thread {i} is waiting for event to happen.")
-    shared.lock.lock()
-    shared.counter += 1
-    shared.lock.unlock()
-    shared.event.wait()
-    print(f"Thread {i} received the signal.")
-
-
-def signal1(shared: Shared1):
-    """Wait for event to happen.
-
-    Args:
-        shared -- shared data
-    """
-    while True:
-        print(f"Signal hasn't happened yet!")
-        sleep(1)
-        while True:
-            shared.lock.lock()
-            if shared.counter == NUM_WAITING_THREADS:
-                print("Signal was sent!")
-                shared.event.signal(shared.counter)
-                shared.lock.unlock()
-                return
-
-
-def main1():
-    """Run example code.
-
-    Create a single writer thread and num_readers reader threads.
-
-    Args:
-        num_readers -- number of reader threads to create
-    """
-    shared: Shared1 = Shared1()
-    waiting_threads: list[Thread] = [
-        Thread(wait1, i, shared) for i in range(NUM_WAITING_THREADS)]
-    signal_thread: Thread = Thread(signal1, shared)
-    for thr in waiting_threads:
-        thr.join()
-    signal_thread.join()
 
 
 class Shared2:
@@ -83,7 +31,7 @@ class Shared2:
         self.event: Event = Event()
 
 
-def wait2(i: int, shared: Shared2):
+def wait(i: int, shared: Shared1|Shared2):
     """Wait for event to happen.
 
     Args:
@@ -93,6 +41,18 @@ def wait2(i: int, shared: Shared2):
     print(f"Thread {i} is waiting for event to happen.")
     shared.event.wait()
     print(f"Thread {i} received the signal.")
+
+
+def signal1(shared: Shared1):
+    """Wait for event to happen.
+
+    Args:
+        shared -- shared data
+    """
+    print(f"Signal hasn't happened yet!")
+    sleep(1)
+    shared.event.signal(NUM_WAITING_THREADS)
+    print("Signal was sent!")
 
 
 def signal2(shared: Shared2):
@@ -107,23 +67,24 @@ def signal2(shared: Shared2):
     print("Signal was sent!")
 
 
-def main2():
+def main(shared: Shared1|Shared2,
+         signal_function: Callable[[Shared1|Shared2], None]):
     """Run example code.
 
-    Create a single writer thread and num_readers reader threads.
+    Create waiting threads and a signaling thread.
 
     Args:
-        num_readers -- number of reader threads to create
+        shared -- shared data
+        signal_function -- signal function to be used by signaling thread
     """
-    shared: Shared2 = Shared2()
     waiting_threads: list[Thread] = [
-        Thread(wait2, i, shared) for i in range(NUM_WAITING_THREADS)]
-    signal_thread: Thread = Thread(signal2, shared)
+        Thread(wait, i, shared) for i in range(NUM_WAITING_THREADS)]
+    signal_thread: Thread = Thread(signal_function, shared)
     for thr in waiting_threads:
         thr.join()
     signal_thread.join()
 
 
 if __name__ == "__main__":
-    # main1()
-    main2()
+    # main(Shared1(), signal1)
+    main(Shared2(), signal2)
