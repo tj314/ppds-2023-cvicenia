@@ -1,6 +1,7 @@
 """This module implements dinning philosophers problem.
 
- No solution is implemented.
+ Solution using a waiter is implemented.
+ Waiter is represented by a Semaphore(4).
  """
 
 __author__ = "Tomáš Vavro"
